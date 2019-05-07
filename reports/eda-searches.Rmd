@@ -16,11 +16,28 @@ theme_set(theme_bw())
 
 ```{r ETL}
 buscas = read_csv(here::here("data/search_data.csv"))
+
+```
+```{r}
+clickthrough <- buscas %>% group_by(day = date(session_start_date),session = session_id, group) %>%     summarise(clicks = sum(num_clicks)) %>% 
+    group_by(day, group) %>% 
+    summarise(clickthrough_rate = sum(clicks > 0)/n()) 
+
+zero_results <- buscas %>% group_by(day = date(session_start_date)) %>% 
+    group_by(day, group) %>% 
+    summarise(zero_results = sum(results == 0)/n())
+
+try_results <- buscas %>% group_by(day = date(session_start_date)) %>% 
+    group_by(day, group) %>% 
+    summarise(try_results = round(mean(na.exclude(first_click))))
+
+session_size <- buscas %>% group_by(day = date(session_start_date)) %>% 
+    group_by(day, group) %>% 
+
+
+
+
+
 ```
 
-```{r}
-buscas %>% 
-    ggplot(aes(x = results)) + 
-    geom_histogram(binwidth = 5) 
-```
 
