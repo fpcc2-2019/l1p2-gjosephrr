@@ -1,43 +1,95 @@
 ---
-title: "EDA buscas"
-output: html_notebook
+title: "Busca na Wikimedia"
 ---
+#####Gabriel Joseph Ramos Rafael
 
-O objeto principal da análise são as buscas e a navegação depois da busca. Criamos esses dados a partir dos dados originais da wikimedia em `/data/search_data.csv`. 
 
-Aqui, exploramos esses dados. 
-
-```{r setup}
-library(tidyverse)
+```{r}
+    library(tidyverse)
 library(here)
 library(lubridate)
 theme_set(theme_bw())
 ```
 
-```{r ETL}
-buscas = read_csv(here::here("data/search_data.csv"))
-
-```
 ```{r}
-clickthrough <- buscas %>% group_by(day = date(session_start_date),session = session_id, group) %>%     summarise(clicks = sum(num_clicks)) %>% 
+buscas = read_csv(here::here("data/search_data.csv"))
+```
+
+### Qual a média de clickthrough rate diária? Como ela varia entre os grupos?
+
+Nesta visualização buscamos representar através de pontos, a variação dos dados clickthrough rate, os valores são conectados por segmentos de reta, visando orientar o angulo dessa mudança.
+
+```{r}
+
+clickthrough <- buscas %>% group_by(day = date(session_start_date),session = session_id, group) %>%
+    summarise(clicks = sum(num_clicks)) %>% 
     group_by(day, group) %>% 
     summarise(clickthrough_rate = sum(clicks > 0)/n()) 
+
+clickthrough %>% 
+ ggplot(aes(x = day, y = clickthrough_rate, color = group, group = group))+
+  geom_point(stat = "identity") +geom_line() +
+  xlab("Dia") + 
+  ylab("Clickthrough Rate") 
+
+```
+
+### Qual a posição dos links que as pessoas tendem a clicar primeiro? Como essa tendência varia diariamente?
+
+Nesta visualização mostra-se a variação dos links clicados em relação ao dia da semana, podemos observar que para o grupo B a média dos links clicados é a mesma, diferente do grupo A, que possui uma variação mais representativa.
+
+```{r}
+try_results <- buscas %>% group_by(day = date(session_start_date)) %>% 
+    group_by(day, group) %>% 
+    summarise(try_results = round(mean(na.exclude(first_click))))
+
+try_results %>% 
+    ggplot(aes(x = day, y = try_results, fill = group))+
+    geom_bar(colour="black", stat="identity") +
+    xlab("Dia") + 
+    ylab("Link Clicado")
+```
+
+O termo "Link Clicado" que aparece no eixo y do gráfico representa a posição do link na listagem de resultados da busca.
+
+### Qual a média de zero results rate diária? Como ela varia entre os grupos?
+
+Nesse gráfico também utilizamos pontos para exemplificar a variação mensal, o eixo y (em porcentagem) mostra quantas buscas retornaram 0 resultados.
+
+
+```{r}
 
 zero_results <- buscas %>% group_by(day = date(session_start_date)) %>% 
     group_by(day, group) %>% 
     summarise(zero_results = sum(results == 0)/n())
 
-try_results <- buscas %>% group_by(day = date(session_start_date)) %>% 
-    group_by(day, group) %>% 
-    summarise(try_results = round(mean(na.exclude(first_click))))
 
-session_size <- buscas %>% group_by(day = date(session_start_date)) %>% 
-    group_by(day, group) %>% 
-
-
-
-
-
+zero_results %>% 
+ ggplot(aes(x = day, y = zero_results, color = group, group = group))+
+  geom_point(stat = "identity") +geom_line() +
+  xlab("Dia") + 
+  ylab("Resultados") 
 ```
+
+
+###Qual a relação entre o tamanho da sessão e a quantidade de buscas realizada na mesma?
+
+Tentando mostrar um aspecto de dispersão dos dados, nesse gráfico buscamos observar como o tamanho da sessão influencia na quantidade de "queries" realizadas pelo usuário em sua busca.
+
+```{r}
+
+session_size <- buscas %>% group_by(session = session_id) %>% 
+    summarise(size = sum(session_length), index = sum(search_index)) %>% 
+    group_by(session, size, index) %>% 
+    filter(size < 100000 )
+
+session_size %>% 
+  ggplot(aes(x = size, y = index)) +
+  geom_point(alpha = .5, color = "#a6371c")+
+  xlab("Quantidade de Queries") + 
+  ylab("Tempo da Sessão") 
+```
+
+Alguns dados aparentavam possuir um desvio do padrão dos demais, um filtro de duração foi aplicado, retirando sessões com tempo menor que 100000.
 
 
